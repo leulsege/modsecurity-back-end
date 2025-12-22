@@ -1,0 +1,15 @@
+// User Model Schema
+// This is a reference file for the User model
+// Note: Prisma only uses schema.prisma, but this file serves as documentation
+
+model User {
+  id        String   @id
+  email     String   @unique
+  fullName  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  role      String?  // super_admin or null
+
+  memberships OrganizationMember[]
+}
+
