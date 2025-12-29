@@ -8,6 +8,8 @@ import { authRoutes } from "./routes/auth.routes";
 import { organizationRoutes } from "./routes/organization.routes";
 import { invitationRoutes } from "./routes/invitation.routes";
 import { organizationMembersRoutes } from "./routes/organization-members.routes";
+import { modsecRoutes } from "./routes/modsec.routes";
+import { modsecCronScheduler } from "./services/modsecCronScheduler";
 
 // Load environment variables
 dotenv.config();
@@ -222,6 +224,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/organizations", organizationRoutes);
 app.use("/api/invitations", invitationRoutes);
 app.use("/api/organization-members", organizationMembersRoutes);
+app.use("/api/modsec", modsecRoutes);
 
 // Root endpoint
 app.get("/", (req: Request, res: Response) => {
@@ -255,6 +258,22 @@ app.listen(PORT, () => {
   console.log(
     `📚 API Documentation available at http://localhost:${PORT}/docs`
   );
+  
+  // Start ModSec cron scheduler
+  modsecCronScheduler.start();
+});
+
+// Graceful shutdown
+process.on("SIGTERM", () => {
+  console.log("SIGTERM received, shutting down gracefully...");
+  modsecCronScheduler.stop();
+  process.exit(0);
+});
+
+process.on("SIGINT", () => {
+  console.log("SIGINT received, shutting down gracefully...");
+  modsecCronScheduler.stop();
+  process.exit(0);
 });
 
 export default app;
