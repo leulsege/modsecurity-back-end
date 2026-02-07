@@ -497,4 +497,89 @@ router.post("/reset-password", async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/auth/refresh:
+ *   post:
+ *     summary: Refresh access token using refresh token
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - refresh_token
+ *             properties:
+ *               refresh_token:
+ *                 type: string
+ *                 description: Refresh token from previous login
+ *     responses:
+ *       200:
+ *         description: Token refreshed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 session:
+ *                   type: object
+ *                   properties:
+ *                     access_token:
+ *                       type: string
+ *                     refresh_token:
+ *                       type: string
+ *                     expires_at:
+ *                       type: number
+ *       400:
+ *         description: Invalid refresh token
+ *       500:
+ *         description: Server error
+ */
+router.post("/refresh", async (req: Request, res: Response) => {
+  try {
+    const { refresh_token } = req.body;
+
+    if (!refresh_token) {
+      return res.status(400).json({
+        message: "Refresh token is required",
+      });
+    }
+
+    // Create a Supabase client instance for this request
+    const { createClient } = await import("@supabase/supabase-js");
+    const supabaseClient = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_ANON_KEY!
+    );
+
+    // Refresh the session using the refresh token
+    const { data, error } = await supabaseClient.auth.refreshSession({
+      refresh_token,
+    });
+
+    if (error || !data.session) {
+      return res.status(401).json({
+        message: "Invalid or expired refresh token",
+        error: error?.message || "Token refresh failed",
+      });
+    }
+
+    res.json({
+      session: {
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token,
+        expires_at: data.session.expires_at,
+      },
+    });
+  } catch (error) {
+    console.error("Error refreshing token:", error);
+    res.status(500).json({
+      message: "Failed to refresh token",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+});
+
 export { router as authRoutes };

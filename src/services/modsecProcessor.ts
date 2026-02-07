@@ -206,6 +206,39 @@ function parseTimestamp(timeStamp: string): Date {
 }
 
 /**
+ * Finds organization ID by matching host against organization domains
+ * Returns the organization ID if a match is found, null otherwise
+ */
+async function findOrganizationByHost(host: string): Promise<string | null> {
+  if (!host || host === 'unknown') {
+    return null;
+  }
+
+  try {
+    // Normalize host: remove port if present, lowercase
+    const normalizedHost = host.split(':')[0].toLowerCase().trim();
+
+    // Find organization where the host matches one of the domains
+    const organization = await prisma.organization.findFirst({
+      where: {
+        domains: {
+          has: normalizedHost,
+        },
+        status: 'active', // Only match active organizations
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    return organization?.id || null;
+  } catch (error) {
+    console.error(`Error finding organization for host ${host}:`, error);
+    return null;
+  }
+}
+
+/**
  * Transforms ModSecurity transaction JSON to Log format
  */
 export function transformModsecToLog(
@@ -380,8 +413,22 @@ export async function processModsecLandingRecord(
       throw new Error("Failed to sanitize transaction data");
     }
 
-    // Transform to Log format using sanitized data
-    const logEntry = transformModsecToLog(sanitizedTransaction, organizationId);
+    // Extract host from transaction to find matching organization
+    const host =
+      sanitizedTransaction.transaction.request.hostname ||
+      sanitizedTransaction.transaction.request.headers?.Host?.split(":")[0] ||
+      sanitizedTransaction.transaction.request.headers?.host?.split(":")[0] ||
+      "unknown";
+
+    // Find organization by matching host against domains array
+    // Use provided organizationId if available, otherwise lookup by host
+    let finalOrganizationId = organizationId;
+    if (!finalOrganizationId && host && host !== 'unknown') {
+      finalOrganizationId = await findOrganizationByHost(host);
+    }
+
+    // Transform to Log format using sanitized data and found organization ID
+    const logEntry = transformModsecToLog(sanitizedTransaction, finalOrganizationId);
 
     // Final sanitization pass - ensure all fields are safe for PostgreSQL
     // This is critical - Prisma will serialize JSONB fields, and any escape sequences

@@ -61,7 +61,7 @@ class ModsecCronScheduler {
 
         console.log(`   📊 Found ${unprocessedCount} unprocessed records`);
 
-        // Process records (no organization ID - logs will be created without org assignment)
+        // Process records (organization ID will be automatically matched by host domain)
         const result = await processAllModsecLandingRecords(
           undefined,
           batchSize

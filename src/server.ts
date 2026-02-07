@@ -9,6 +9,8 @@ import { organizationRoutes } from "./routes/organization.routes";
 import { invitationRoutes } from "./routes/invitation.routes";
 import { organizationMembersRoutes } from "./routes/organization-members.routes";
 import { modsecRoutes } from "./routes/modsec.routes";
+import { logsRoutes } from "./routes/logs.routes";
+import { domainWafRoutes } from "./routes/domain-waf.routes";
 import { modsecCronScheduler } from "./services/modsecCronScheduler";
 
 // Load environment variables
@@ -222,9 +224,11 @@ app.get("/health", (req: Request, res: Response) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/organizations", organizationRoutes);
+app.use("/api/organizations", domainWafRoutes);
 app.use("/api/invitations", invitationRoutes);
 app.use("/api/organization-members", organizationMembersRoutes);
 app.use("/api/modsec", modsecRoutes);
+app.use("/api/logs", logsRoutes);
 
 // Root endpoint
 app.get("/", (req: Request, res: Response) => {
@@ -258,7 +262,7 @@ app.listen(PORT, () => {
   console.log(
     `📚 API Documentation available at http://localhost:${PORT}/docs`
   );
-  
+
   // Start ModSec cron scheduler
   modsecCronScheduler.start();
 });

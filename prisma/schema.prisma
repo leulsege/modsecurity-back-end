@@ -45,6 +45,7 @@ model Organization {
   updatedAt  DateTime             @updatedAt
   logs       Log[]
   members    OrganizationMember[]
+  domainWafStatuses DomainWAFStatus[]
 }
 
 model Log {
@@ -75,6 +76,20 @@ model Log {
   @@index([clientIp])
   @@index([action])
   @@index([severity])
+}
+
+model DomainWAFStatus {
+  id             String       @id @default(uuid())
+  organizationId String
+  domain         String
+  wafEnabled     Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, domain])
+  @@index([organizationId])
+  @@index([domain])
 }
 
 model ModsecLanding {
